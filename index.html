@@ -13,22 +13,32 @@
             }
         };
 
-        // Cargar el script Lua desde GitHub Pages
-        fetch('ls_shapes_window.lua')
-            .then(response => response.text())
-            .then(luaScript => {
-                const L = lua.vm.create();
-                L.execute(luaScript);
+        // Esperar a que el DOM esté completamente cargado
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar si lua.vm.js se ha cargado correctamente
+            if (typeof lua === 'undefined') {
+                console.error('lua.vm.js no se ha cargado correctamente.');
+                return;
+            }
 
-                // Llamar a las funciones Lua y mostrar los resultados
-                const name = L.call('LS_ShapesWindow:Name');
-                const version = L.call('LS_ShapesWindow:Version');
-                const description = L.call('LS_ShapesWindow:Description');
+            // Cargar el script Lua desde GitHub Pages
+            fetch('ls_shapes_window.lua')
+                .then(response => response.text())
+                .then(luaScript => {
+                    const L = lua.vm.create();
+                    L.execute(luaScript);
 
-                console.log('Name:', name);
-                console.log('Version:', version);
-                console.log('Description:', description);
-            });
+                    // Llamar a las funciones Lua y mostrar los resultados
+                    const name = L.call('LS_ShapesWindow:Name');
+                    const version = L.call('LS_ShapesWindow:Version');
+                    const description = L.call('LS_ShapesWindow:Description');
+
+                    console.log('Name:', name);
+                    console.log('Version:', version);
+                    console.log('Description:', description);
+                })
+                .catch(error => console.error('Error loading Lua script:', error));
+        });
     </script>
 </head>
 <body>
