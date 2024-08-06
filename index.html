@@ -2,41 +2,120 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Run Lua Script</title>
-    <script src="lua.vm.js"></script>
+    <title>Extract Lua Functions</title>
 </head>
 <body>
-    <h1>Run Lua Script</h1>
+    <h1>Extracted Lua Functions</h1>
+    <div id="output"></div>
+
+    <p id="custom-text">
+        This is the <span id="name-placeholder"></span>, which current version is <span id="version-placeholder"></span> and here is a brief description: <span id="description-placeholder"></span>
+    </p>
+
     <script>
-        async function loadAndRunLuaScript(url, functionName) {
+        async function loadLuaScript(url) {
             try {
-                // Cargar el script Lua
                 const response = await fetch(url);
-                const luaScript = await response.text();
-
-                // Crear la VM de Lua
-                const L = new lua.vm.Lua.State();
-
-                // Ejecutar el script Lua
-                L.execute(luaScript);
-
-                // Llamar a la función Lua y obtener el resultado
-                L.execute(`return ${functionName}()`);
-                const result = L.result[0];  // Obtener el resultado de la función
-
-                console.log(result);  // Mostrar el resultado en la consola
-                document.body.innerHTML += `<p>Resultado: ${result}</p>`;
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return await response.text();
             } catch (error) {
-                console.error('Error ejecutando el script Lua:', error);
+                console.error('Error loading Lua script:', error);
+                return null;
             }
         }
 
-        // URL del script Lua en GitHub Pages
-        const luaScriptUrl = 'https://lost-scripts.github.io/ls_test_5/ls_shapes_window.lua';
-        const functionName = 'LS_ShapesWindow:Version()';
+        async function extractLuaFunctions(url) {
+            try {
+                const luaScript = await loadLuaScript(url);
+                if (!luaScript) return null;
 
-        loadAndRunLuaScript(luaScriptUrl, functionName);
+                const lines = luaScript.split('\n');
+                const extractedData = {};
+
+                for (let i = 0; i < Math.min(lines.length, 100); i++) {
+                    const line = lines[i].trim();
+
+                    if (line.startsWith('function') && (line.includes(':Name') || line.includes(':Version') || line.includes(':Description') || line.includes(':Creator') || line.includes(':UILabel'))) {
+                        const nextLine = lines[i + 1].trim();
+                        if (line.includes(':Name')) extractedData["Name"] = nextLine;
+                        if (line.includes(':Version')) extractedData["Version"] = nextLine;
+                        if (line.includes(':Description')) extractedData["Description"] = nextLine;
+                        if (line.includes(':Creator')) extractedData["Creator"] = nextLine;
+                        if (line.includes(':UILabel')) extractedData["UILabel"] = nextLine;
+                    }
+                }
+
+                return extractedData;
+            } catch (error) {
+                console.error('Error extracting Lua functions:', error);
+                return null;
+            }
+        }
+
+        function extractStringFromValue(value, key) {
+            const keyPattern = key ? new RegExp(`${key} = `) : null;
+            const valuePart = keyPattern ? value.split(keyPattern)[1] : value;
+
+            let result = '';
+            let inString = false;
+            let escapeNext = false;
+
+            for (let i = 0; i < valuePart.length; i++) {
+                const char = valuePart[i];
+
+                if (escapeNext) {
+                    escapeNext = false;
+                } else if (char === '\\') {
+                    escapeNext = true;
+                } else if (char === '"') {
+                    if (inString) {
+                        break;
+                    } else {
+                        inString = true;
+                    }
+                } else if (inString) {
+                    result += char;
+                }
+            }
+
+            // Eliminar el prefijo que coincide con el patrón "/*="
+            result = result.replace(/\/.*?=/, '');
+
+            return result;
+        }
+
+        async function displayExtractedFunctions(luaScriptUrl, field, subfield = null) {
+            const extractedData = await extractLuaFunctions(luaScriptUrl);
+
+            if (extractedData) {
+                console.log('Extracted Lua functions:', extractedData);
+
+                const fieldValue = extractedData[field];
+                if (fieldValue) {
+                    return extractStringFromValue(fieldValue, subfield);
+                } else {
+                    return `Field "${field}" not found.`;
+                }
+            } else {
+                return 'Failed to extract Lua functions.';
+            }
+        }
+
+        async function updatePageContent() {
+            const luaScriptUrl = 'ls_shapes_window.lua'; // URL relativa
+
+            const name = await displayExtractedFunctions(luaScriptUrl, "Name", "ScriptName");
+            const version = await displayExtractedFunctions(luaScriptUrl, "Version");
+            const description = await displayExtractedFunctions(luaScriptUrl, "Description");
+
+            document.getElementById('name-placeholder').textContent = name;
+            document.getElementById('version-placeholder').textContent = version;
+            document.getElementById('description-placeholder').textContent = description;
+        }
+
+        updatePageContent();
     </script>
 </body>
 </html>
-

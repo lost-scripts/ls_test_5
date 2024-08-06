@@ -15,7 +15,7 @@ LS_ShapesWindow = {}
 LS_ShapesWindow.BASE_STR = 2320
 
 function LS_ShapesWindow:Name()
-	return "Shapes Window"
+	return ({"Bone Beats", ScriptName = "Shapes Window", Short = "BB", UUID = "9359801d-4575-89f1-1430-a735961168f4"})[i or 1] --return "Shapes Window"
 end
 
 function LS_ShapesWindow:Version()
