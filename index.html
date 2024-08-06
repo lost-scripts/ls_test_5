@@ -12,19 +12,5 @@
     <p id="custom-text">
         This is the <span id="name-placeholder"></span>, which current version is <span id="version-placeholder"></span> and here is a brief description: <span id="description-placeholder"></span>
     </p>
-
-    <button onclick="displayDynamicContent()">Load Dynamic Content</button>
-
-    <script>
-        async function displayDynamicContent() {
-            const luaScriptUrl = 'ls_shapes_window.lua';
-
-            const name = await displayExtractedFunctions(luaScriptUrl, "Name");
-            const version = await displayExtractedFunctions(luaScriptUrl, "Version");
-            const description = await displayExtractedFunctions(luaScriptUrl, "Description");
-
-            console.log('Dynamic Content:', { name, version, description });
-        }
-    </script>
 </body>
 </html>
