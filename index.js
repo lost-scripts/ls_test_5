@@ -14,13 +14,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function cleanValue(value) {
         console.log('Original value:', value);
-        let cleanedValue = value
-            .replace(/^["{]+|["},]+$/g, '') // Elimina comillas y llaves al principio y al final
-            .replace(/\\\"/g, '"')         // Reemplaza \" por "
-            .replace(/["]+/g, '')          // Elimina todas las comillas internas
-            .trim();                       // Elimina espacios en blanco al principio y al final
-        console.log('Cleaned value:', cleanedValue);
-        return cleanedValue;
+        value = value.trim();
+
+        if (value.startsWith('"') && value.endsWith('",')) {
+            // Es un string, eliminar comillas externas y reemplazar comillas escapadas
+            value = value.slice(1, -2).replace(/\\"/g, '"');
+        } else if (value.startsWith('{') && value.endsWith('},')) {
+            // Es una tabla, eliminar llaves externas y comillas internas
+            value = value.slice(1, -2).replace(/\"/g, '');
+        } else {
+            // Es otro tipo de valor, tomar el valor después del último espacio antes de la coma
+            value = value.slice(0, -1).trim(); // Eliminar la coma final
+            const lastSpaceIndex = value.lastIndexOf(' ');
+            if (lastSpaceIndex !== -1) {
+                value = value.slice(lastSpaceIndex + 1);
+            }
+
+            // Eliminar comillas si es que hay
+            if (value.startsWith('"') && value.endsWith('"')) {
+                value = value.slice(1, -1);
+            }
+        }
+
+        console.log('Cleaned value:', value);
+        return value;
     }
 
     async function extractLuaFunctions(url) {
@@ -46,11 +63,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         break;
                     }
 
-                    const keyValue = line.split('=');
-                    if (keyValue.length === 2) {
-                        const key = keyValue[0].trim();
-                        const value = cleanValue(keyValue[1].trim());
-                        extractedData[key] = value;
+                    if (line.startsWith('"') && line.endsWith('",')) {
+                        // Primer valor especial (nombre del script)
+                        extractedData.ScriptName = cleanValue(line);
+                    } else {
+                        const keyValue = line.split('=');
+                        if (keyValue.length === 2) {
+                            const key = keyValue[0].trim();
+                            const value = cleanValue(keyValue[1].trim());
+                            extractedData[key] = value;
+                        }
                     }
                 }
             }
